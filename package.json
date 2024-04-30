@@ -4,7 +4,8 @@
   "description": "",
   "main": "dist/app.js",
   "scripts": {
-    "start": "eslint ./src/ && ts-node ./src/app.ts"
+    "start": "eslint ./src/ && ts-node ./src/app.ts",
+    "build": "eslint ./src/ && tsc -p ./tsconfig.json"
   },
   "keywords": [],
   "author": "",
@@ -28,8 +29,16 @@
   "dependencies": {
     "@prisma/client": "^5.13.0",
     "express": "^4.19.2",
-    "instagram-graph-api": "^6.1.0",
     "instagram-private-api": "github:dilame/instagram-private-api",
     "node-telegram-bot-api": "^0.65.1"
+  },
+  "engines": {
+    "npm": "9.8.1",
+    "node": "18.18.0"
+  },
+  "overrides": {
+    "dependency": {
+      "ts-custom-error": "npm:ts-custom-error@3.3.1"
+    }
   }
 }
