@@ -8,6 +8,7 @@ jobs:
   state: 
     name: Init state variables
     runs-on: vm40646
+    environment: stage
     steps:
 
       - name: Get branch name
@@ -42,6 +43,7 @@ jobs:
     needs: state
     name: Push Docker image to Docker
     runs-on: vm40646
+    environment: stage
     steps:
     
     - name: Check out the repo
@@ -62,6 +64,7 @@ jobs:
     needs: [state, push_to_registry]
     name: Update/Create container with new image and run it
     runs-on: vm40646
+    environment: stage
     steps: 
 
       - name: Stop existing docker conatiner 
@@ -82,6 +85,7 @@ jobs:
     runs-on: vm40646
     needs: [state, update-create-container, push_to_registry]
     if: ${{ always() }}
+    environment: stage
     steps: 
       #success
 
