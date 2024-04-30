@@ -1,0 +1,26 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Queue {
+  providerType String
+  clientId     String
+  @@id([clientId, providerType])
+}
+
+model Chat {
+  providerType1 String
+  clientId1  String
+  providerType2 String
+  clientId2  String
+  closedAt    DateTime?
+  @@id(name: "chatId", [clientId1, providerType1, clientId2, providerType2])
+}
