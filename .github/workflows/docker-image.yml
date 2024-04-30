@@ -1,0 +1,122 @@
+name: Docker Image CI/CD
+env:
+  IMAGE_NAME: github/socialanonbot
+on:
+  push:
+    branches: [ "master" ]
+jobs:
+  state: 
+    name: Init state variables
+    runs-on: vm40646
+    steps:
+
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v7
+
+      - name: Set docker tag
+        run: |
+          echo "DOCKER_TAG=${{ env.IMAGE_NAME }}:${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_ENV
+
+      - name: Get old image id
+        run: |
+          result=$( docker images -q ${{ env.DOCKER_TAG }} )
+          echo "OLD_IMAGE_ID=${result}" >> $GITHUB_ENV
+          
+      - name: Set base container name variable
+        run: |
+          echo "CONTAINER_NAME=${{ env.IMAGE_NAME }}-${{ steps.branch-name.outputs.current_branch }}" | tr "/" "-" >> $GITHUB_ENV
+
+      - name: Check if container exists
+        run: |
+          result=$( docker ps -a -q -f name=${{ env.CONTAINER_NAME }} )
+          echo "OLD_CONTAINER_ID=${result}" >> $GITHUB_ENV
+        
+    outputs:
+     OLD_IMAGE_ID: ${{ env.OLD_IMAGE_ID }}
+     CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+     OLD_CONTAINER_ID: ${{ env.OLD_CONTAINER_ID }}
+     DOCKER_TAG: ${{ env.DOCKER_TAG }}
+     
+  push_to_registry:
+    needs: state
+    name: Push Docker image to Docker
+    runs-on: vm40646
+    steps:
+    
+    - name: Check out the repo
+      uses: actions/checkout@v4
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      id: dockerbuild
+      with:
+        context: .
+        file: ./Dockerfile
+        tags: ${{ needs.state.outputs.DOCKER_TAG }}
+
+    outputs:
+     NEW_IMAGE_ID: ${{ steps.dockerbuild.outputs.imageid }}
+
+  update-create-container:
+    needs: [state, push_to_registry]
+    name: Update/Create container with new image and run it
+    runs-on: vm40646
+    steps: 
+
+      - name: Stop existing docker conatiner 
+        if: ${{ needs.state.outputs.OLD_CONTAINER_ID != '' }}
+        run: |
+          docker stop ${{ needs.state.outputs.OLD_CONTAINER_ID }}
+      
+      - name: Run new container
+        run: |
+          result=$( docker run -i --restart unless-stopped --name ${{ needs.state.outputs.CONTAINER_NAME }}-new -d ${{ needs.push_to_registry.outputs.NEW_IMAGE_ID }} )
+          echo "NEW_CONTAINER_ID=${result}" >> $GITHUB_ENV
+          
+    outputs:
+      NEW_CONTAINER_ID: ${{ env.NEW_CONTAINER_ID }}  
+
+  clean-up:
+    name: Clean up
+    runs-on: vm40646
+    needs: [state, update-create-container, push_to_registry]
+    if: ${{ always() }}
+    steps: 
+      #success
+
+      - name: Remove existing docker container
+        if: ${{ needs.update-create-container.result == 'success' && needs.state.outputs.OLD_CONTAINER_ID != '' }}
+        run: |
+          docker rm ${{ needs.state.outputs.OLD_CONTAINER_ID }}
+    
+      - name: Rename new docker container
+        if: ${{ needs.update-create-container.result == 'success' && needs.update-create-container.outputs.NEW_CONTAINER_ID != '' }}
+        run: |
+          docker rename ${{ needs.state.outputs.CONTAINER_NAME }}-new ${{ needs.state.outputs.CONTAINER_NAME }}
+
+      - name: Remove old image
+        if: ${{ (needs.update-create-container.result == 'success' && needs.push_to_registry.result == 'success') && needs.state.outputs.OLD_IMAGE_ID != '' }}
+        run: |
+          docker rmi ${{ needs.state.outputs.OLD_IMAGE_ID }}
+
+      #failed
+      
+      - name: Remove new broken container
+        if: ${{ needs.update-create-container.result != 'success' && needs.update-create-container.outputs.NEW_CONTAINER_ID != '' }}
+        run: |
+          docker stop ${{ needs.update-create-container.outputs.NEW_CONTAINER_ID }}
+          docker rm ${{ needs.update-create-container.outputs.NEW_CONTAINER_ID }}
+
+      - name: Start old container
+        if: ${{ needs.update-create-container.result != 'success' && needs.state.outputs.OLD_CONTAINER_ID != '' }}
+        run: |
+          docker start ${{ needs.state.outputs.OLD_CONTAINER_ID }}
+
+      - name: Remove new broken image
+        if: ${{ (needs.update-create-container.result != 'success' || needs.push_to_registry.result != 'success') && needs.push_to_registry.outputs.NEW_IMAGE_ID != '' }}
+        run: |
+          docker rmi ${{ needs.push_to_registry.outputs.NEW_IMAGE_ID }}
+
+        
+      
