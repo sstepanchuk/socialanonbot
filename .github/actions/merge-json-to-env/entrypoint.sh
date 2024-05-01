@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Function to convert JSON string to env file string
 json_to_env() {
@@ -6,13 +6,10 @@ json_to_env() {
     local env_string=""
 
     # Parse JSON string
-    printf "%s\n" "$json_string" | jq -c '.[]' | while IFS= read -r line; do
-        key=$(echo "$line" | jq -r 'keys | .[]')
-        value=$(echo "$line" | jq -r ".$key")
-
+    while IFS='=' read -r key value; do
         # Append to env string
-        env_string="$env_string$key=$value"$'\n'
-    done
+        env_string+="$key=$value"$'\n'
+    done <<< "$(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<< "$json_string")"
 
     echo "$env_string"
 }
@@ -21,10 +18,10 @@ json_to_env() {
 JSONS="$1"
 
 # Merge JSON strings using jq
-MERGED_JSON=$(jq -n 'reduce inputs as $i ({}; . * $i)')
+MERGED_JSON=$(jq -n 'reduce inputs as $i ({}; . * $i)' <<< "$JSONS")
 
 # Convert merged JSON to env file string
 ENV_STRING=$(json_to_env "$MERGED_JSON")
-
+echo "$ENV_STRING" | grep -Eo "^[^\=]+?"
 # Output the resulting environment file string
-echo "$ENV_STRING" > "$GITHUB_ENV"
+echo "env=$ENV_STRING" >> $GITHUB_OUTPUT
