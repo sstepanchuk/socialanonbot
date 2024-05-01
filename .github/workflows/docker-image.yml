@@ -82,6 +82,8 @@ jobs:
           # Function to create or override .env file
           create_or_override_env_file() {
               echo "Creating/overriding .env file..."
+              # CLear file
+              > "$ENV_FILE"
               # Loop through prefixes
               for prefix in "${PREFIXES[@]}"; do
                   # Loop through environment variables with current prefix
