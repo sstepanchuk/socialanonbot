@@ -1,6 +1,6 @@
 name: Docker Image CI/CD
 env:
-  IMAGE_NAME: github/socialanonbot
+  IMAGE_NAME: github/scabot
   ENV_FILE: .env
 on:
   push:
@@ -48,7 +48,6 @@ jobs:
       CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
       OLD_CONTAINER_ID: ${{ env.OLD_CONTAINER_ID }}
       DOCKER_TAG: ${{ env.DOCKER_TAG }}
-      ENV: ${{ steps.merge.outputs.env }}
     
      
   push_to_registry:
@@ -56,11 +55,6 @@ jobs:
     name: Push Docker image to Docker
     runs-on: vm40646
     steps:
-
-    - name: Update env file
-      run: |
-        > ${{ env.ENV_FILE }}
-        echo "${{ needs.state.outputs.ENV }}" > ${{ env.ENV_FILE }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -83,11 +77,6 @@ jobs:
         if: ${{ needs.state.outputs.OLD_CONTAINER_ID != '' }}
         run: |
           docker stop ${{ needs.state.outputs.OLD_CONTAINER_ID }}
-
-      - name: Update env file
-        run: |
-          > ${{ env.ENV_FILE }}
-          echo "${{ needs.state.outputs.ENV }}" > ${{ env.ENV_FILE }}
       
       - name: Run new container
         run: |
