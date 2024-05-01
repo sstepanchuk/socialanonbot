@@ -5,6 +5,7 @@ import {
   IgApiClient
 } from 'instagram-private-api'
 import fs from 'fs'
+import { autoRetryAsync } from '../shared/auto-retry'
 
 export class InstagramProvider implements IProvider {
   private readonly client = new IgApiClient()
@@ -41,19 +42,28 @@ export class InstagramProvider implements IProvider {
 
   async init (): Promise<void> {
     this.client.state.generateDevice(ENV.IG_USERNAME)
-    await this.client.simulate.preLoginFlow()
-    this.user = await this.client.account.login(
-      ENV.IG_USERNAME,
-      ENV.IG_PASSWORD
+    await autoRetryAsync(async () => { await this.client.simulate.preLoginFlow() },
+      'InstagramProvider.init',
+      { maxRetries: 0, delayMs: 5 * 60 * 1000 }
+    )
+
+    await autoRetryAsync(async () => {
+      this.user = await this.client.account.login(
+        ENV.IG_USERNAME,
+        ENV.IG_PASSWORD
+      )
+    },
+    'InstagramProvider.init',
+    { maxRetries: 0, delayMs: 5 * 60 * 1000 }
     )
   }
 
   async sendMessage (clientid: string, message: string): Promise<void> {
-    try {
-      await this.client.entity.directThread(clientid).broadcastText(message)
-    } catch (error) {
-      console.error('INSTAGRAM: Failed to send message:', error)
-    }
+    await autoRetryAsync(
+      async () => await this.client.entity.directThread(clientid).broadcastText(message),
+      'InstagramProvider.sendMessage',
+      { maxRetries: 3, delayMs: 1000 }
+    )
   }
 
   registerMessageCallback (
