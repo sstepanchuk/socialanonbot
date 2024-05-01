@@ -93,7 +93,7 @@ export class InstagramProvider implements IProvider {
       } catch (error) {
         console.error('INSTAGRAM: Failed to get direct inbox:', error)
       }
-    }, 5000)
+    }, 7000)
 
     return {
       removeListener: () => {
