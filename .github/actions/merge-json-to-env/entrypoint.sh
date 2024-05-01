@@ -12,6 +12,7 @@ json_to_env() {
 
         # Append to env string
         env_string+="$key=$value"$'\n'
+        echo "Appended \"$key\" variable"
     done <<< "$(echo "$json_string" | jq -c '.[]')"
 
     echo "$env_string"
@@ -27,4 +28,4 @@ MERGED_JSON=$(jq -n 'reduce inputs as $i ({}; . * $i)' <(printf "%s\n" "${JSONS[
 ENV_STRING=$(json_to_env "$MERGED_JSON")
 
 # Output the resulting environment file string
-echo "$ENV_STRING"
+echo "env=$ENV_STRING" >> $GITHUB_OUTPUT
