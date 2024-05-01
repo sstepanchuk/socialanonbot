@@ -21,7 +21,7 @@ json_to_env() {
 JSONS="$1"
 
 # Merge JSON strings using jq
-MERGED_JSON=$(jq -n 'reduce inputs as $i ({}; . * $i)' < <(printf "%s\n" "${JSONS}"))
+MERGED_JSON=$(jq -n 'reduce inputs as $i ({}; . * $i)')
 
 # Convert merged JSON to env file string
 ENV_STRING=$(json_to_env "$MERGED_JSON")
