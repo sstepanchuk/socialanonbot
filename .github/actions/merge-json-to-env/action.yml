@@ -1,0 +1,10 @@
+name: 'Merge JSON to Env'
+description: 'Merge JSON strings and convert to environment variables'
+inputs:
+  jsons:
+    description: 'JSON strings to merge (array)'
+    required: true
+    type: string[]
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
