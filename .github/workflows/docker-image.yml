@@ -49,6 +49,46 @@ jobs:
     - name: Check out the repo
       uses: actions/checkout@v4
 
+    - uses: oNaiPs/secrets-to-env-action@v1
+      with:
+        secrets: ${{ toJSON(secrets) }}
+
+    - name: Create .env file
+      run: |
+        # Specify prefixes for environment variables to include in .env file
+        PREFIXES=("VAR_" "SECRET_")
+        
+        # Path to the .env file
+        ENV_FILE=".env"
+        
+        # Function to create or override .env file
+        create_or_override_env_file() {
+            echo "Creating/overriding .env file..."
+            # Loop through prefixes
+            for prefix in "${PREFIXES[@]}"; do
+                # Loop through environment variables with current prefix
+                for var in $(env | grep "^$prefix"); do
+                    # Extract variable name and value
+                    key=$(echo "$var" | cut -d'=' -f1)
+                    value=$(echo "$var" | cut -d'=' -f2-)
+                    # Remove prefix from variable name
+                    key_without_prefix="${key#$prefix}"
+                    # Append to .env file
+                    echo "$key_without_prefix=$value" >> "$ENV_FILE"
+                done
+            done
+            echo "Done."
+        }
+        
+        # Check if .env file exists
+        if [ -f "$ENV_FILE" ]; then
+            # Override .env file if it already exists
+            create_or_override_env_file
+        else
+            # Create .env file if it doesn't exist
+            create_or_override_env_file
+        fi
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       id: dockerbuild
@@ -74,7 +114,7 @@ jobs:
       
       - name: Run new container
         run: |
-          result=$( docker run -i --restart unless-stopped --name ${{ needs.state.outputs.CONTAINER_NAME }}-new -d ${{ needs.push_to_registry.outputs.NEW_IMAGE_ID }} )
+          result=$( docker run --env-file ./env -i --restart unless-stopped --name ${{ needs.state.outputs.CONTAINER_NAME }}-new -d ${{ needs.push_to_registry.outputs.NEW_IMAGE_ID }} )
           echo "NEW_CONTAINER_ID=${result}" >> $GITHUB_ENV
           
     outputs:
