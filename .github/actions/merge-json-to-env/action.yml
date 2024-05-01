@@ -6,7 +6,7 @@ inputs:
     required: true
     type: string[]
 outputs:
-  time: # id of output
+  env: # id of output
     description: 'ENV string'
     type: string
 runs:
