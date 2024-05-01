@@ -4,11 +4,9 @@ inputs:
   jsons:
     description: 'JSON strings to merge (array)'
     required: true
-    type: string[]
 outputs:
   env: # id of output
     description: 'ENV string'
-    type: string
 runs:
   using: 'docker'
   image: 'Dockerfile'
