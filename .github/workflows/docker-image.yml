@@ -35,7 +35,7 @@ jobs:
           echo "OLD_CONTAINER_ID=${result}" >> $GITHUB_ENV
 
       - name: Pass secrets and vars to ENV
-        uses: ./merge-json-to-env
+        uses: ./.github/actions/merge-json-to-env
         id: merge
         with: 
           jsons: |
