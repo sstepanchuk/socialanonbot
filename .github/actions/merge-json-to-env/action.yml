@@ -28,7 +28,7 @@ runs:
         }
     
         # Retrieve JSON strings from inputs
-        JSONS="${{ inputs.jsons }}"
+        JSONS="$1"
     
         # Merge JSON strings using jq
         MERGED_JSON=$(jq -n 'reduce inputs as $i ({}; . * $i)' <<< "$JSONS")
@@ -39,3 +39,5 @@ runs:
         # Output the resulting environment file string
         echo "env=$ENV_STRING" >> $GITHUB_OUTPUT
       shell: bash
+      args: 
+        - ${{ inputs.jsons }}
