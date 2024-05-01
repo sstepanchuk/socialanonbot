@@ -49,6 +49,24 @@ jobs:
     - name: Check out the repo
       uses: actions/checkout@v4
 
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      id: dockerbuild
+      with:
+        context: .
+        file: ./Dockerfile
+        tags: ${{ needs.state.outputs.DOCKER_TAG }}
+
+    outputs:
+     NEW_IMAGE_ID: ${{ steps.dockerbuild.outputs.imageid }}
+
+  update-create-container:
+    needs: [state, push_to_registry]
+    name: Update/Create container with new image and run it
+    runs-on: vm40646
+    environment: stage
+    steps: 
+
     - uses: oNaiPs/secrets-to-env-action@v1
       with:
         secrets: ${{ toJSON(secrets) }}
@@ -88,24 +106,6 @@ jobs:
             # Create .env file if it doesn't exist
             create_or_override_env_file
         fi
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      id: dockerbuild
-      with:
-        context: .
-        file: ./Dockerfile
-        tags: ${{ needs.state.outputs.DOCKER_TAG }}
-
-    outputs:
-     NEW_IMAGE_ID: ${{ steps.dockerbuild.outputs.imageid }}
-
-  update-create-container:
-    needs: [state, push_to_registry]
-    name: Update/Create container with new image and run it
-    runs-on: vm40646
-    environment: stage
-    steps: 
 
       - name: Stop existing docker conatiner 
         if: ${{ needs.state.outputs.OLD_CONTAINER_ID != '' }}
