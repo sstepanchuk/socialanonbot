@@ -67,46 +67,46 @@ jobs:
     environment: stage
     steps: 
 
-    - uses: oNaiPs/secrets-to-env-action@v1
-      with:
-        secrets: ${{ toJSON(secrets) }}
-
-    - name: Create .env file
-      run: |
-        # Specify prefixes for environment variables to include in .env file
-        PREFIXES=("VAR_" "SECRET_")
-        
-        # Path to the .env file
-        ENV_FILE=".env"
-        
-        # Function to create or override .env file
-        create_or_override_env_file() {
-            echo "Creating/overriding .env file..."
-            # Loop through prefixes
-            for prefix in "${PREFIXES[@]}"; do
-                # Loop through environment variables with current prefix
-                for var in $(env | grep "^$prefix"); do
-                    # Extract variable name and value
-                    key=$(echo "$var" | cut -d'=' -f1)
-                    value=$(echo "$var" | cut -d'=' -f2-)
-                    # Remove prefix from variable name
-                    key_without_prefix="${key#$prefix}"
-                    # Append to .env file
-                    echo "$key_without_prefix=$value" >> "$ENV_FILE"
-                done
-            done
-            echo "Done."
-        }
-        
-        # Check if .env file exists
-        if [ -f "$ENV_FILE" ]; then
-            # Override .env file if it already exists
-            create_or_override_env_file
-        else
-            # Create .env file if it doesn't exist
-            create_or_override_env_file
-        fi
-
+      - uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
+  
+      - name: Create .env file
+        run: |
+          # Specify prefixes for environment variables to include in .env file
+          PREFIXES=("VAR_" "SECRET_")
+          
+          # Path to the .env file
+          ENV_FILE=".env"
+          
+          # Function to create or override .env file
+          create_or_override_env_file() {
+              echo "Creating/overriding .env file..."
+              # Loop through prefixes
+              for prefix in "${PREFIXES[@]}"; do
+                  # Loop through environment variables with current prefix
+                  for var in $(env | grep "^$prefix"); do
+                      # Extract variable name and value
+                      key=$(echo "$var" | cut -d'=' -f1)
+                      value=$(echo "$var" | cut -d'=' -f2-)
+                      # Remove prefix from variable name
+                      key_without_prefix="${key#$prefix}"
+                      # Append to .env file
+                      echo "$key_without_prefix=$value" >> "$ENV_FILE"
+                  done
+              done
+              echo "Done."
+          }
+          
+          # Check if .env file exists
+          if [ -f "$ENV_FILE" ]; then
+              # Override .env file if it already exists
+              create_or_override_env_file
+          else
+              # Create .env file if it doesn't exist
+              create_or_override_env_file
+          fi
+  
       - name: Stop existing docker conatiner 
         if: ${{ needs.state.outputs.OLD_CONTAINER_ID != '' }}
         run: |
