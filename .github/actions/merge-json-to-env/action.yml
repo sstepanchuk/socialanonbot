@@ -4,6 +4,10 @@ inputs:
   jsons:
     description: 'JSON strings to merge (array)'
     required: true
+  file:
+    description: 'Path to save the environment variables (optional)'
+    required: false
+    default: .env
 outputs:
   env: # id of output
     description: 'ENV string'
@@ -35,6 +39,7 @@ runs:
         echo "$ENV_STRING" | grep -Eo "^[^\=]+?"
         # Output the resulting environment file string
         echo "env=$ENV_STRING" >> $GITHUB_OUTPUT
+        echo "$ENV_STRING" > "${{ inputs.output_file }}"
       shell: bash
       env: 
         JSONS: ${{ inputs.jsons }}
