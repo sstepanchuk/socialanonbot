@@ -12,7 +12,6 @@ json_to_env() {
 
         # Append to env string
         env_string+="$key=$value"$'\n'
-        echo "Appended \"$key\" variable"
     done <<< "$(echo "$json_string" | jq -c '.[]')"
 
     echo "$env_string"
