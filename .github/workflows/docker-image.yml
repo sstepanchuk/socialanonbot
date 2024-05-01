@@ -11,6 +11,8 @@ jobs:
     runs-on: vm40646
     environment: stage
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Get branch name
         id: branch-name
@@ -54,9 +56,6 @@ jobs:
     name: Push Docker image to Docker
     runs-on: vm40646
     steps:
-    
-    - name: Check out the repo
-      uses: actions/checkout@v4
 
     - name: Update env file
       run: |
