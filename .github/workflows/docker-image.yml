@@ -33,22 +33,35 @@ jobs:
         run: |
           result=$( docker ps -a -q -f name=${{ env.CONTAINER_NAME }} )
           echo "OLD_CONTAINER_ID=${result}" >> $GITHUB_ENV
-        
+
+      - name: Pass secrets and vars to ENV
+        uses: ./merge-json-to-env
+        id: merge
+        with: 
+          jsons: |
+            ${{ toJSON(vars) }}
+            ${{ toJSON(secrets) }}
     outputs:
-     OLD_IMAGE_ID: ${{ env.OLD_IMAGE_ID }}
-     CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
-     OLD_CONTAINER_ID: ${{ env.OLD_CONTAINER_ID }}
-     DOCKER_TAG: ${{ env.DOCKER_TAG }}
+      OLD_IMAGE_ID: ${{ env.OLD_IMAGE_ID }}
+      CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+      OLD_CONTAINER_ID: ${{ env.OLD_CONTAINER_ID }}
+      DOCKER_TAG: ${{ env.DOCKER_TAG }}
+      ENV: ${{ steps.merge.outputs.env }}
+    
      
   push_to_registry:
     needs: state
     name: Push Docker image to Docker
     runs-on: vm40646
-    environment: stage
     steps:
     
     - name: Check out the repo
       uses: actions/checkout@v4
+
+    - name: Update env file
+      run: |
+        > ${{ env.ENV_FILE }}
+        echo "${{ needs.state.outputs.ENV }}" > ${{ env.ENV_FILE }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -65,57 +78,17 @@ jobs:
     needs: [state, push_to_registry]
     name: Update/Create container with new image and run it
     runs-on: vm40646
-    environment: stage
     steps: 
-
-      - uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(secrets) }}
-
-      - uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(vars) }}
-  
-      - name: Create .env file
-        run: |
-          # Specify prefixes for environment variables to include in .env file
-          PREFIXES=("VAR_" "SECRET_")
-          
-          # Function to create or override .env file
-          create_or_override_env_file() {
-              echo "Creating/overriding .env file..."
-              # CLear file
-              > "$ENV_FILE"
-              # Loop through prefixes
-              for prefix in "${PREFIXES[@]}"; do
-                  # Loop through environment variables with current prefix
-                  for var in $(env | grep "^$prefix"); do
-                      # Extract variable name and value
-                      key=$(echo "$var" | cut -d'=' -f1)
-                      value=$(echo "$var" | cut -d'=' -f2-)
-                      # Remove prefix from variable name
-                      key_without_prefix="${key#$prefix}"
-                      # Append to .env file
-                      echo "Key \"$key_without_prefix\" apended to $ENV_FILE file"
-                      echo "$key_without_prefix=\"$value\"" >> "$ENV_FILE"
-                  done
-              done
-              echo "Done."
-          }
-          
-          # Check if .env file exists
-          if [ -f "$ENV_FILE" ]; then
-              # Override .env file if it already exists
-              create_or_override_env_file
-          else
-              # Create .env file if it doesn't exist
-              create_or_override_env_file
-          fi
   
       - name: Stop existing docker conatiner 
         if: ${{ needs.state.outputs.OLD_CONTAINER_ID != '' }}
         run: |
           docker stop ${{ needs.state.outputs.OLD_CONTAINER_ID }}
+
+      - name: Update env file
+        run: |
+          > ${{ env.ENV_FILE }}
+          echo "${{ needs.state.outputs.ENV }}" > ${{ env.ENV_FILE }}
       
       - name: Run new container
         run: |
@@ -130,7 +103,6 @@ jobs:
     runs-on: vm40646
     needs: [state, update-create-container, push_to_registry]
     if: ${{ always() }}
-    environment: stage
     steps: 
       #success
 
