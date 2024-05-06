@@ -38,8 +38,6 @@ setInterval(async () => {
 
   if (queues.length === 0) return
 
-  console.log(JSON.stringify(queues, null, 2))
-
   await prisma.chat.create({
     data: {
       providerType1: queues[0].providerType1,
@@ -128,20 +126,6 @@ async function listener (provider: ProviderType, clientid: string, message: stri
 
   providers[sendProviderType].sendMessage(sendClientId, message)
 }
-
-/* const registeredListeners = Object.entries(providers)
-  .map(([providerType, provider]) => {
-    return {
-      key: providerType,
-      value: provider.registerMessageCallback(async ({ clientid, message }) => {
-        await listener(ProviderType[providerType], clientid, message);
-      }),
-    };
-  })
-  .reduce((acc, cur) => {
-    acc[cur.key] = cur.value;
-    return acc;
-  }, {} as Record<ProviderType, ReturnType<IProvider['registerMessageCallback']>>); */
 
 async function main (): Promise<void> {
   for (const [providerType, provider] of Object.entries(providers)) {

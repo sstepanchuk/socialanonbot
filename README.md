@@ -9,13 +9,20 @@ The project uses environment variables for configuration. These are stored in th
 
 ## Building
 
-To build the project, use the following command: ```npm run build```
+To build the project, use the following command: `npm run build`
 
 This will compile the TypeScript files into JavaScript.
 
 ## Running
 
-To run the project, use the following command: ```npm start```
+To run the project, use the following command: `npm start`
+
+## Bot Links
+
+You can find and interact with the bot in the following messengers:
+
+- [Telegram](https://t.me/socialanonbot)
+- [Instagram](https://www.instagram.com/socialanonbot?igsh=MWM3YWJvYjVzbHQyZg==)
 
 ## Contributing
 

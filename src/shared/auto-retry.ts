@@ -1,4 +1,4 @@
-interface AutoRetryOptions {
+export interface AutoRetryOptions {
   maxRetries?: number
   delayMs?: number
 }
