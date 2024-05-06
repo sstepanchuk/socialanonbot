@@ -1,15 +1,13 @@
 import { TelegramProvider } from './providers/TelegramProvider'
 import { InstagramProvider } from './providers/InstagramProvider'
 import { type IProvider, ProviderType } from './providers/IProvider'
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import prisma from './prisma'
 
 const providers: Record<ProviderType, IProvider> = {
   [ProviderType.Telegram]: new TelegramProvider(),
   [ProviderType.Instagram]: new InstagramProvider()
 }
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 setInterval(async () => {
   const queues = await prisma.$queryRawUnsafe<Array<{
     providerType1: ProviderType

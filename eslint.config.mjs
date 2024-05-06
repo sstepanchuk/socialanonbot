@@ -14,7 +14,8 @@ export default [
   ...compat.extends('standard-with-typescript'),
   ...compat.config({
     rules: {
-      '@typescript-eslint/space-before-function-paren': 'off'
+      '@typescript-eslint/space-before-function-paren': 'off',
+      '@typescript-eslint/no-misused-promises': 'off'
     },
     parserOptions: {
       project: './tsconfig.eslint.json'

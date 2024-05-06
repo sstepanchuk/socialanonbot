@@ -2,42 +2,33 @@ import { type IProvider } from './IProvider'
 import { ENV } from '../config'
 import {
   type AccountRepositoryLoginResponseLogged_in_user,
-  IgApiClient
+  IgApiClient,
+  type DirectInboxFeedResponseItemsItem
 } from 'instagram-private-api'
-import fs from 'fs'
 import { autoRetryAsync } from '../shared/auto-retry'
+import prisma from '../prisma'
 
 export class InstagramProvider implements IProvider {
   private readonly client = new IgApiClient()
   private user: AccountRepositoryLoginResponseLogged_in_user | null = null
 
-  private readonly dataFilePath: string = './instagramlog.json'
-
-  private loadData (): Record<string, string[]> {
-    try {
-      const data = fs.readFileSync(this.dataFilePath, 'utf-8')
-      return JSON.parse(data) as Record<string, string[]>
-    } catch (error) {
-      return {}
-    }
+  async pushLog(threadId: string, itemId: string): Promise<void> {
+    await prisma.instagramLog.create({
+      data: {
+        threadId,
+        itemId
+      }
+    })
   }
 
-  private saveData (val: Record<string, string[]>): void {
-    try {
-      const data = JSON.stringify(val, null, 2)
-      fs.writeFileSync(this.dataFilePath, data, 'utf-8')
-    } catch (error) {
-      // Handle error if file cannot be written
-      console.error('Failed to save data:', error)
-    }
-  }
-
-  get readedItems (): Record<string, string[]> {
-    return this.loadData()
-  }
-
-  set readedItems (value: Record<string, string[]>) {
-    this.saveData(value)
+  async ifLogExists(threadId: string, itemId: string): Promise<boolean> {
+    const log = await prisma.instagramLog.count({
+      where: {
+        threadId,
+        itemId
+      }
+    })
+    return log > 0
   }
 
   async init (): Promise<void> {
@@ -70,6 +61,20 @@ export class InstagramProvider implements IProvider {
     callback: (data: { clientid: string, message: string }) => Promise<void>
   ): { removeListener: () => void } {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    const workWithThred = async (threadId: string, notSortedItems: DirectInboxFeedResponseItemsItem[]): Promise<void> => {
+      const items = notSortedItems.sort((a, b) => +a.timestamp - +b.timestamp)
+      for (const item of items) {
+        if (item.user_id === this.user?.pk) continue
+        if (await this.ifLogExists(threadId, item.item_id)) {
+          continue
+        }
+        if (item.text != null) {
+          await callback({ clientid: threadId, message: item.text })
+        }
+        await this.pushLog(threadId, item.item_id)
+      }
+    }
+
     const interval = setInterval(async () => {
       try {
         const directPending = await this.client.feed.directPending().items()
@@ -77,29 +82,11 @@ export class InstagramProvider implements IProvider {
           await this.client.directThread.approve(thread.thread_id)
         }
 
-        const readedItems = this.readedItems
-
         const data = await this.client.feed.directInbox().items()
+
         for (const thread of data) {
-          for (const item of thread.items) {
-            if (item.user_id === this.user?.pk) continue
-            if (readedItems[thread.thread_id] !== undefined) {
-              if (readedItems[thread.thread_id].includes(item.item_id)) {
-                continue
-              }
-            }
-            if (item.text != null) {
-              void callback({ clientid: thread.thread_id, message: item.text })
-            }
-            if (readedItems[thread.thread_id] === undefined) {
-              readedItems[thread.thread_id] = []
-            }
-            readedItems[thread.thread_id].push(item.item_id)
-            readedItems[thread.thread_id] =
-              readedItems[thread.thread_id].slice(-10)
-          }
+          void workWithThred(thread.thread_id, thread.items)
         }
-        this.readedItems = readedItems
       } catch (error) {
         console.error('INSTAGRAM: Failed to get direct inbox:', error)
       }
