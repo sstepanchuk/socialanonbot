@@ -30,4 +30,4 @@ Contributions are welcome. Please make sure to update tests as appropriate.
 
 ## License
 
-This project is licensed under the ISC license. See the `LICENSE` file for details.
+This project is licensed under the ISC license. See the `LICENSE` file for details. 
